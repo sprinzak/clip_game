@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>בינגו קליפים</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        body { font-family: sans-serif; background: #121212; color: white; text-align: center; padding: 20px; }
+        .clip-card { background: #1e1e1e; border-radius: 15px; padding: 15px; margin-bottom: 20px; border: 1px solid #333; }
+        input[type="number"] { width: 80%; }
+        button { background: #00d4ff; color: black; border: none; padding: 15px 30px; font-weight: bold; border-radius: 10px; cursor: pointer; }
+        #results { display: none; margin-top: 20px; background: #222; padding: 20px; border-radius: 15px; }
+    </style>
+</head>
+<body>
+    <h1>🎬 משחק הדירוגים</h1>
+    <div id="setup">
+        <input type="text" id="username" placeholder="הכנס שם..." style="padding: 10px; border-radius: 5px;">
+        <button onclick="joinGame()">הצטרף למשחק</button>
+    </div>
+
+    <div id="game-area" style="display:none;">
+        <div id="clips-container"></div>
+        <button onclick="sendData()">שלח דירוגים!</button>
+    </div>
+
+    <div id="results">
+        <h2>תוצאות סופיות 🏆</h2>
+        <div id="leaderboard"></div>
+    </div>
+
+    <script>
+        const socket = io();
+        let myName = "";
+
+        function joinGame() {
+            myName = document.getElementById('username').value;
+            if (!myName) return alert("חובה להכניס שם!");
+            socket.emit('join_game', { username: myName });
+            document.getElementById('setup').style.display = 'none';
+            document.getElementById('game-area').style.display = 'block';
+            renderClips();
+        }
+
+        function renderClips() {
+            const container = document.getElementById('clips-container');
+            container.innerHTML = ""; // מנקה את המכולה לפני הציור
+            for (let i = 1; i <= 10; i++) {
+                container.innerHTML += `
+                    <div class="clip-card">
+                        <input type="text" id="name-${i}" value="קליפ ${i}" style="font-size: 1.2em; font-weight: bold; background: transparent; color: white; border: 1px dashed #555; text-align: center; margin-bottom: 10px;"><br>
+                        
+                        <label>הציון שלך (1-10):</label>
+                        <input type="number" min="1" max="10" value="5" id="op-${i}" style="padding: 5px; width: 50px;"><br><br>
+                        
+                        <label>ניחוש מיקום סופי (1-10):</label>
+                        <input type="number" min="1" max="10" value="5" id="bel-${i}" style="padding: 5px; width: 50px;">
+                    </div>`;
+            }
+        }
+
+        function sendData() {
+            let votes = [];
+            for (let i = 1; i <= 10; i++) {
+                votes.push({
+                    clip_id: i,
+                    opinion: document.getElementById(`op-${i}`).value,
+                    belief: document.getElementById(`bel-${i}`).value
+                });
+            }
+            socket.emit('submit_scores', { username: myName, votes: votes });
+            document.getElementById('game-area').innerHTML = "<h2>הנתונים נשלחו! מחכים לשאר השחקנים...</h2>";
+        }
+
+        socket.on('game_results', (data) => {
+            document.getElementById('game-area').style.display = 'none';
+            document.getElementById('results').style.display = 'block';
+            let lb = data.leaderboard.map(p => `<p>${p.name}: ${p.score} נקודות בינגו</p>`).join("");
+            document.getElementById('leaderboard').innerHTML = lb;
+        });
+    </script>
+</body>
+</html>
