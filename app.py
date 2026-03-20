@@ -5,6 +5,7 @@ from flask_socketio import SocketIO, emit
 import pandas as pd
 
 app = Flask(__name__)
+app.config['secret_key'] = os.environ.get('secret_key', 'dev_key_only')
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 # הגדרות הקובץ לשמירה
